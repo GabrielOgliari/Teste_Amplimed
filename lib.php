@@ -5,7 +5,7 @@
 */
 
 function criarTabelaTemporaria($conn, $nomeTabela, $colunas){
-  $sql = "CREATE TABLE $nomeTabela ($colunas)";
+  $sql = "CREATE TABLE IF NOT EXISTS $nomeTabela ($colunas)";
 
   if ($conn->query($sql) === TRUE) {
     echo "Tabela  temporária criada.\n";
@@ -93,13 +93,41 @@ function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra,
               } else {
                   echo "Erro ao inserir registro na tabela $nomeTabelaMigra: " . $connMedical->error . "\n";
               }
-          } else {
-              echo "Registro com $campoChecagemMigra = $campoChecagemValor já existe na tabela $nomeTabelaMigra.\n";
-          }
+          } 
 
           // Fechar o statement de verificação
           $stmtCheck->close();
       }
+  }
+}
+
+function atualizarIDsTemp($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra, $campoChecagemTemp, $campoChecagemMigra, $campoIDTemp): void {
+  // Seleciona todos os dados da tabela de migração
+  $sqlSelect = "SELECT $campoChecagemMigra, id FROM $nomeTabelaMigra";
+  $result = $connMedical->query($sqlSelect);
+
+  if ($result === false) {
+    die("Erro ao selecionar dados da tabela de migração: " . $connMedical->error);
+  }
+
+  if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+      $campoChecagemValor = $row[$campoChecagemMigra];
+      $idMigra = $row['id'];
+
+      // Atualiza o ID na tabela temporária
+      $sqlUpdateTemp = "UPDATE $nomeTabelaTemp SET $campoIDTemp = ? WHERE $campoChecagemTemp = ?";
+      $stmtUpdateTemp = $connTemp->prepare($sqlUpdateTemp);
+      $stmtUpdateTemp->bind_param('is', $idMigra, $campoChecagemValor);
+      if ($stmtUpdateTemp->execute()) {
+        echo "ID atualizado na tabela temporária para $campoChecagemValor.\n";
+      } else {
+        echo "Erro ao atualizar ID na tabela temporária: " . $stmtUpdateTemp->error . "\n";
+      }
+      $stmtUpdateTemp->close();
+    }
+  } else {
+    echo "Nenhum registro encontrado na tabela $nomeTabelaMigra.\n";
   }
 }
 

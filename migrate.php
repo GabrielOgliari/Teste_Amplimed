@@ -61,8 +61,12 @@ criarTabelaTemporaria($connTemp, "agendamentos", $temp_agendamentos);
 importarCSV($connTemp, "pacientes", "./dados_sistema_legado/20210512_pacientes.csv");
 importarCSV($connTemp, "agendamentos", "./dados_sistema_legado/20210512_agendamentos.csv");
 
-// Migrando os dados para a base da clínica fictícia Medical Challenge:
+// Migrando os dados para a tabela convenios
 migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp: "pacientes", nomeTabelaMigra: "convenios", campoChecagemTemp: "convenio", campoChecagemMigra: "nome", colunasTemp: "convenio", colunasMigra: "nome");
+atualizarIDsTemp($connTemp, $connMedical,"pacientes", "convenios", "convenio","nome", "id_conv");
+// Migrando os dados para a tabela pacientes
+migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp: "pacientes", nomeTabelaMigra: "pacientes", campoChecagemTemp: "cpf_paciente", campoChecagemMigra: "cpf", colunasTemp: "nome_paciente, nasc_paciente, cpf_paciente, rg_paciente, sexo_pac, id_conv", colunasMigra: "nome, nascimento, cpf, rg, sexo, id_convenio");
+atualizarIDsTemp($connTemp, $connMedical,"pacientes", "pacientes", "cpf_paciente", "cpf", "cod_paciente");
 
 // Encerrando as conexões:
 $connMedical->close();
