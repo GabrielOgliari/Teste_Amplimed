@@ -25,7 +25,7 @@ $connTemp = mysqli_connect("localhost", "root", "masterkey", "0temp")
 echo "Início da Migração: " . dateNow() . ".\n\n";
 
 
-// Criando a tabela temporária:
+// Criando a tabelas temporárias:
 $temp_paciente ="
   cod_paciente INT,
   nome_paciente VARCHAR(255),
@@ -64,9 +64,12 @@ importarCSV($connTemp, "agendamentos", "./dados_sistema_legado/20210512_agendame
 // Migrando os dados para a tabela convenios
 migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp: "pacientes", nomeTabelaMigra: "convenios", campoChecagemTemp: "convenio", campoChecagemMigra: "nome", colunasTemp: "convenio", colunasMigra: "nome");
 atualizarIDsTemp($connTemp, $connMedical,"pacientes", "convenios", "convenio","nome", "id_conv");
+atualizarIDsTemp($connTemp, $connMedical,nomeTabelaTemp: "agendamentos", nomeTabelaMigra: "convenios", campoChecagemTemp: "convenio",campoChecagemMigra: "nome", campoIDTemp: "cod_convenio");
 // Migrando os dados para a tabela pacientes
 migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp: "pacientes", nomeTabelaMigra: "pacientes", campoChecagemTemp: "cpf_paciente", campoChecagemMigra: "cpf", colunasTemp: "nome_paciente, nasc_paciente, cpf_paciente, rg_paciente, sexo_pac, id_conv", colunasMigra: "nome, nascimento, cpf, rg, sexo, id_convenio");
 atualizarIDsTemp($connTemp, $connMedical,"pacientes", "pacientes", "cpf_paciente", "cpf", "cod_paciente");
+// Migrando os dados para a tabela processedimentos
+migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp:"agendamentos",  nomeTabelaMigra:"procedimentos", campoChecagemTemp:"procedimento", campoChecagemMigra: "nome", colunasTemp:"procedimento", colunasMigra:"nome");
 
 // Encerrando as conexões:
 $connMedical->close();

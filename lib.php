@@ -1,9 +1,4 @@
 <?php
-/*
-  Biblioteca de Funções.
-    Você pode separar funções muito utilizadas nesta biblioteca, evitando replicação de código.
-*/
-
 function criarTabelaTemporaria($conn, $nomeTabela, $colunas){
   $sql = "CREATE TABLE IF NOT EXISTS $nomeTabela ($colunas)";
 
@@ -14,14 +9,14 @@ function criarTabelaTemporaria($conn, $nomeTabela, $colunas){
   }
 }
 
-// Função para formatar a data corretamente
+
 function formatarData($data) {
-  // Verifica se a data é válida no formato dd/mm/aaaa
+
   $dataFormatada = DateTime::createFromFormat('d/m/Y', $data);
   if ($dataFormatada && $dataFormatada->format('d/m/Y') === $data) {
       return $dataFormatada->format('Y-m-d'); // Formato MySQL
   }
-  return "NULL"; // Retorna NULL se a data for inválida
+  return "NULL"; 
 }
 
 function formatarSexo($sexo) {
@@ -33,8 +28,6 @@ function importarCSV($conn, $nomeTabela, $arquivo) {
   if (!$handle) {
       die("Erro ao abrir o arquivo: $arquivo");
   }
-
-  // Ignora a primeira linha (cabeçalho)
   fgetcsv($handle, 1000, ";");
 
   while (($dados = fgetcsv($handle, 1000, ";")) !== false) {
@@ -46,10 +39,8 @@ function importarCSV($conn, $nomeTabela, $arquivo) {
       // Preenche campos vazios com NULL
       $campos = implode(", ", array_map(fn($coluna) => $coluna === '' ? "NULL" : "'$coluna'", $dados)); 
 
-      // Monta o comando SQL de inserção
       $sql = "INSERT INTO $nomeTabela VALUES ($campos)";
 
-      // Executa o comando SQL
       if (!$conn->query($sql)) {
           echo "Erro ao inserir na tabela $nomeTabela: " . $conn->error . "\n";
       }
@@ -70,7 +61,7 @@ function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra,
   if ($result->num_rows > 0) {
       while ($row = $result->fetch_assoc()) {
           // Verifica se o registro já existe na tabela de destino
-          $campoChecagemValor = $row[$campoChecagemTemp]; // Valor do campo para verificação
+          $campoChecagemValor = $row[$campoChecagemTemp];
 
           // Preparando a consulta de verificação
           $sqlCheck = "SELECT 1 FROM $nomeTabelaMigra WHERE $campoChecagemMigra = ?";
@@ -80,11 +71,9 @@ function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra,
           $stmtCheck->store_result();
 
           if ($stmtCheck->num_rows === 0) {
-              // Monta a instrução de inserção
-              // Escapando e tratando valores corretamente
               $valores = array_map(function($value) use ($connMedical) {
                   return $value === null ? "NULL" : "'" . $connMedical->real_escape_string($value) . "'";
-              }, array_values($row)); // Escapa os valores e trata valores NULL
+              }, array_values($row));
 
               $sqlInsert = "INSERT INTO $nomeTabelaMigra ($colunasMigra) VALUES (" . implode(", ", $valores) . ")";
 
@@ -95,14 +84,12 @@ function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra,
               }
           } 
 
-          // Fechar o statement de verificação
           $stmtCheck->close();
       }
   }
 }
 
 function atualizarIDsTemp($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra, $campoChecagemTemp, $campoChecagemMigra, $campoIDTemp): void {
-  // Seleciona todos os dados da tabela de migração
   $sqlSelect = "SELECT $campoChecagemMigra, id FROM $nomeTabelaMigra";
   $result = $connMedical->query($sqlSelect);
 
@@ -115,7 +102,6 @@ function atualizarIDsTemp($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaM
       $campoChecagemValor = $row[$campoChecagemMigra];
       $idMigra = $row['id'];
 
-      // Atualiza o ID na tabela temporária
       $sqlUpdateTemp = "UPDATE $nomeTabelaTemp SET $campoIDTemp = ? WHERE $campoChecagemTemp = ?";
       $stmtUpdateTemp = $connTemp->prepare($sqlUpdateTemp);
       $stmtUpdateTemp->bind_param('is', $idMigra, $campoChecagemValor);
