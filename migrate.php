@@ -70,6 +70,9 @@ migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp: "pac
 atualizarIDsTemp($connTemp, $connMedical,"pacientes", "pacientes", "cpf_paciente", "cpf", "cod_paciente");
 // Migrando os dados para a tabela processedimentos
 migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp:"agendamentos",  nomeTabelaMigra:"procedimentos", campoChecagemTemp:"procedimento", campoChecagemMigra: "nome", colunasTemp:"procedimento", colunasMigra:"nome");
+// Migrando os dados para a tabela profissionais
+migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp:"agendamentos",  nomeTabelaMigra:"profissionais", campoChecagemTemp:"medico", campoChecagemMigra: "nome", colunasTemp:"medico", colunasMigra:"nome");
+atualizarIDsTemp($connTemp, $connMedical,nomeTabelaTemp: "agendamentos", nomeTabelaMigra: "profissionais", campoChecagemTemp: "medico", campoChecagemMigra: "nome", campoIDTemp: "cod_medico");
 
 // Encerrando as conexões:
 $connMedical->close();
