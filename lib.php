@@ -38,7 +38,6 @@ function importarCSV($conn, $nomeTabela, $arquivo) {
   fgetcsv($handle, 1000, ";");
 
   while (($dados = fgetcsv($handle, 1000, ";")) !== false) {
-      // Se a data de nascimento (índice 2) for inválida, substitui por NULL
       $dados[2] = formatarData($dados[2]);
       if ($dados[7] === 'M' || $dados[7] === 'F')  
         $dados[7] = formatarSexo($dados[7]); 
@@ -56,15 +55,13 @@ function importarCSV($conn, $nomeTabela, $arquivo) {
 }
 
 function transformarDados($connTemp) {
-  // Adiciona as colunas data_hora_inicio e data_hora_fim à tabela agendamentos
+  // Adiciona as colunas data_hora_inicio, data_hora_fim e cod_procedimento à tabela agendamentos
   $alter = "ALTER TABLE agendamentos ADD COLUMN data_hora_inicio DATETIME, ADD COLUMN data_hora_fim DATETIME, ADD COLUMN cod_procedimento INT";
   if ($connTemp->query($alter) === TRUE) {
-    echo "Colunas data_hora_inicio e data_hora_fim adicionadas à tabela agendamentos.\n";
   } else {
     die("Erro ao adicionar colunas: " . $connTemp->error);
   }
 
-  // Seleciona os dados da tabela agendamentos
   $sqlSelect = "SELECT cod_agendamento, dia, hora_inicio, hora_fim FROM agendamentos";
   $result = $connTemp->query($sqlSelect);
 
@@ -72,7 +69,7 @@ function transformarDados($connTemp) {
     die("Erro ao selecionar dados da tabela agendamentos: " . $connTemp->error);
   }
 
-  // Atualiza os dados na tabela agendamentos
+
   while ($row = $result->fetch_assoc()) {
     $codAgendamento = $row['cod_agendamento'];
     $dataHoraInicio = formatarData($row['dia'], $row['hora_inicio']);
@@ -83,13 +80,14 @@ function transformarDados($connTemp) {
     $stmtUpdate->bind_param('ssi', $dataHoraInicio, $dataHoraFim, $codAgendamento);
 
     if ($stmtUpdate->execute()) {
-      echo "Dados atualizados para o agendamento $codAgendamento.\n";
+      
     } else {
       echo "Erro ao atualizar dados para o agendamento $codAgendamento: " . $stmtUpdate->error . "\n";
     }
 
     $stmtUpdate->close();
   }
+  echo "Dados transformados com sucesso.\n";
 }
 
 function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra, $campoChecagemTemp, $campoChecagemMigra, $colunasTemp, $colunasMigra) {
@@ -121,14 +119,13 @@ function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra,
               $sqlInsert = "INSERT INTO $nomeTabelaMigra ($colunasMigra) VALUES (" . implode(", ", $valores) . ")";
 
               if ($connMedical->query($sqlInsert) === TRUE) {
-                  echo "Registro inserido com sucesso na tabela $nomeTabelaMigra.\n";
               } else {
                   echo "Erro ao inserir registro na tabela $nomeTabelaMigra: " . $connMedical->error . "\n";
               }
           } 
-
           $stmtCheck->close();
       }
+      echo "Registro migrados com sucesso da tabela $nomeTabelaTemp para a tabela $nomeTabelaMigra.\n";
   }
 }
 
@@ -149,12 +146,12 @@ function atualizarIDsTemp($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaM
       $stmtUpdateTemp = $connTemp->prepare($sqlUpdateTemp);
       $stmtUpdateTemp->bind_param('is', $idMigra, $campoChecagemValor);
       if ($stmtUpdateTemp->execute()) {
-        echo "ID atualizado na tabela temporária para $campoChecagemValor.\n";
       } else {
         echo "Erro ao atualizar ID na tabela temporária: " . $stmtUpdateTemp->error . "\n";
       }
       $stmtUpdateTemp->close();
     }
+    echo "IDs atualizado na tabela temporária refente ao campo $campoIDTemp\n";
   } else {
     echo "Nenhum registro encontrado na tabela $nomeTabelaMigra.\n";
   }
