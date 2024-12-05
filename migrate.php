@@ -61,19 +61,28 @@ criarTabelaTemporaria($connTemp, "agendamentos", $temp_agendamentos);
 importarCSV($connTemp, "pacientes", "./dados_sistema_legado/20210512_pacientes.csv");
 importarCSV($connTemp, "agendamentos", "./dados_sistema_legado/20210512_agendamentos.csv");
 
+transformarDados($connTemp);
+
 // Migrando os dados para a tabela convenios
 migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp: "pacientes", nomeTabelaMigra: "convenios", campoChecagemTemp: "convenio", campoChecagemMigra: "nome", colunasTemp: "convenio", colunasMigra: "nome");
 atualizarIDsTemp($connTemp, $connMedical,"pacientes", "convenios", "convenio","nome", "id_conv");
 atualizarIDsTemp($connTemp, $connMedical,nomeTabelaTemp: "agendamentos", nomeTabelaMigra: "convenios", campoChecagemTemp: "convenio",campoChecagemMigra: "nome", campoIDTemp: "cod_convenio");
+
 // Migrando os dados para a tabela pacientes
 migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp: "pacientes", nomeTabelaMigra: "pacientes", campoChecagemTemp: "cpf_paciente", campoChecagemMigra: "cpf", colunasTemp: "nome_paciente, nasc_paciente, cpf_paciente, rg_paciente, sexo_pac, id_conv", colunasMigra: "nome, nascimento, cpf, rg, sexo, id_convenio");
 atualizarIDsTemp($connTemp, $connMedical,"pacientes", "pacientes", "cpf_paciente", "cpf", "cod_paciente");
+atualizarIDsTemp($connTemp, $connTemp,"agendamentos", nomeTabelaMigra: "pacientes", campoChecagemTemp: "paciente", campoChecagemMigra: "nome_paciente", campoIDTemp: "cod_paciente", campoIDMigra: "cod_paciente");
+
 // Migrando os dados para a tabela processedimentos
 migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp:"agendamentos",  nomeTabelaMigra:"procedimentos", campoChecagemTemp:"procedimento", campoChecagemMigra: "nome", colunasTemp:"procedimento", colunasMigra:"nome");
+atualizarIDsTemp($connTemp, $connMedical,nomeTabelaTemp: "agendamentos", nomeTabelaMigra: "procedimentos", campoChecagemTemp: "procedimento", campoChecagemMigra: "nome", campoIDTemp: "cod_procedimento");
+
 // Migrando os dados para a tabela profissionais
 migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp:"agendamentos",  nomeTabelaMigra:"profissionais", campoChecagemTemp:"medico", campoChecagemMigra: "nome", colunasTemp:"medico", colunasMigra:"nome");
 atualizarIDsTemp($connTemp, $connMedical,nomeTabelaTemp: "agendamentos", nomeTabelaMigra: "profissionais", campoChecagemTemp: "medico", campoChecagemMigra: "nome", campoIDTemp: "cod_medico");
 
+// Migrando os dados para a tabela agendamentos
+migrarDados(connTemp: $connTemp, connMedical: $connMedical, nomeTabelaTemp:"agendamentos",  nomeTabelaMigra:"agendamentos", campoChecagemTemp:"data_hora_inicio",campoChecagemMigra:"dh_inicio", colunasTemp:"cod_paciente, cod_medico, data_hora_inicio, data_hora_fim, cod_convenio, cod_procedimento, descricao", colunasMigra:"id_paciente, id_profissional, dh_inicio, dh_fim, id_convenio, id_procedimento, observacoes");
 // Encerrando as conexões:
 $connMedical->close();
 $connTemp->close();

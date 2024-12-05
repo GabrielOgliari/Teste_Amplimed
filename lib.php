@@ -10,12 +10,19 @@ function criarTabelaTemporaria($conn, $nomeTabela, $colunas){
 }
 
 
-function formatarData($data) {
-
-  $dataFormatada = DateTime::createFromFormat('d/m/Y', $data);
-  if ($dataFormatada && $dataFormatada->format('d/m/Y') === $data) {
-      return $dataFormatada->format('Y-m-d'); // Formato MySQL
+function formatarData($data, $hora = "00:00:00") {
+  // Tenta criar a data no formato d/m/Y H:i:s
+  $dataHoraFormatada = DateTime::createFromFormat('d/m/Y H:i:s', "$data $hora");
+  if ($dataHoraFormatada && $dataHoraFormatada->format('d/m/Y H:i:s') === "$data $hora") {
+    return $dataHoraFormatada->format('Y-m-d H:i:s'); // Formato MySQL com data e hora
   }
+
+  // Se falhar, tenta criar a data no formato Y-m-d H:i:s
+  $dataHoraFormatada = DateTime::createFromFormat('Y-m-d H:i:s', "$data $hora");
+  if ($dataHoraFormatada && $dataHoraFormatada->format('Y-m-d H:i:s') === "$data $hora") {
+    return $dataHoraFormatada->format('Y-m-d H:i:s'); // Formato MySQL com data e hora
+  }
+
   return "NULL"; 
 }
 
@@ -48,8 +55,44 @@ function importarCSV($conn, $nomeTabela, $arquivo) {
   fclose($handle);
 }
 
+function transformarDados($connTemp) {
+  // Adiciona as colunas data_hora_inicio e data_hora_fim à tabela agendamentos
+  $alter = "ALTER TABLE agendamentos ADD COLUMN data_hora_inicio DATETIME, ADD COLUMN data_hora_fim DATETIME, ADD COLUMN cod_procedimento INT";
+  if ($connTemp->query($alter) === TRUE) {
+    echo "Colunas data_hora_inicio e data_hora_fim adicionadas à tabela agendamentos.\n";
+  } else {
+    die("Erro ao adicionar colunas: " . $connTemp->error);
+  }
 
-function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra, $campoChecagemTemp, $campoChecagemMigra, $colunasTemp, $colunasMigra): void {
+  // Seleciona os dados da tabela agendamentos
+  $sqlSelect = "SELECT cod_agendamento, dia, hora_inicio, hora_fim FROM agendamentos";
+  $result = $connTemp->query($sqlSelect);
+
+  if ($result === false) {
+    die("Erro ao selecionar dados da tabela agendamentos: " . $connTemp->error);
+  }
+
+  // Atualiza os dados na tabela agendamentos
+  while ($row = $result->fetch_assoc()) {
+    $codAgendamento = $row['cod_agendamento'];
+    $dataHoraInicio = formatarData($row['dia'], $row['hora_inicio']);
+    $dataHoraFim = formatarData($row['dia'], $row['hora_fim']);
+
+    $sqlUpdate = "UPDATE agendamentos SET data_hora_inicio = ?, data_hora_fim = ? WHERE cod_agendamento = ?";
+    $stmtUpdate = $connTemp->prepare($sqlUpdate);
+    $stmtUpdate->bind_param('ssi', $dataHoraInicio, $dataHoraFim, $codAgendamento);
+
+    if ($stmtUpdate->execute()) {
+      echo "Dados atualizados para o agendamento $codAgendamento.\n";
+    } else {
+      echo "Erro ao atualizar dados para o agendamento $codAgendamento: " . $stmtUpdate->error . "\n";
+    }
+
+    $stmtUpdate->close();
+  }
+}
+
+function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra, $campoChecagemTemp, $campoChecagemMigra, $colunasTemp, $colunasMigra) {
   // Seleciona todos os dados da tabela temporária
   $sqlSelect = "SELECT $colunasTemp FROM $nomeTabelaTemp";
   $result = $connTemp->query($sqlSelect);
@@ -89,8 +132,8 @@ function migrarDados($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra,
   }
 }
 
-function atualizarIDsTemp($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra, $campoChecagemTemp, $campoChecagemMigra, $campoIDTemp): void {
-  $sqlSelect = "SELECT $campoChecagemMigra, id FROM $nomeTabelaMigra";
+function atualizarIDsTemp($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaMigra, $campoChecagemTemp, $campoChecagemMigra, $campoIDTemp, $campoIDMigra='id'): void {
+  $sqlSelect = "SELECT $campoChecagemMigra, $campoIDMigra FROM $nomeTabelaMigra";
   $result = $connMedical->query($sqlSelect);
 
   if ($result === false) {
@@ -100,7 +143,7 @@ function atualizarIDsTemp($connTemp, $connMedical, $nomeTabelaTemp, $nomeTabelaM
   if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
       $campoChecagemValor = $row[$campoChecagemMigra];
-      $idMigra = $row['id'];
+      $idMigra = $row[$campoIDMigra];
 
       $sqlUpdateTemp = "UPDATE $nomeTabelaTemp SET $campoIDTemp = ? WHERE $campoChecagemTemp = ?";
       $stmtUpdateTemp = $connTemp->prepare($sqlUpdateTemp);
